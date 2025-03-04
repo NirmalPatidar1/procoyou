@@ -5,12 +5,10 @@ from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.parsers import MultiPartParser, FormParser
-
-from .serializers import ProfileImageUploadSerializer
-
-from .serializers import UserSignupSerializer, OTPVerificationSerializer, UserLoginSerializer
+from .serializers import *
 from rest_framework.permissions import IsAuthenticated
-from .serializers import UserInfoSerializer
+from .models import *
+from rest_framework import generics
 
 User = get_user_model()
 
@@ -80,9 +78,10 @@ class UserInfoView(APIView):
         serializer = UserInfoSerializer(user)
         return Response(serializer.data)
     
+# User profile image upload
 class ProfileImageUploadView(APIView):
-    permission_classes = [IsAuthenticated]  # Only logged-in users can access
-    parser_classes = [MultiPartParser, FormParser]  # Handle image upload
+    permission_classes = [IsAuthenticated]  
+    parser_classes = [MultiPartParser, FormParser]  
 
     def post(self, request):
         user = request.user
@@ -91,3 +90,20 @@ class ProfileImageUploadView(APIView):
             serializer.save()
             return Response({"message": "Profile image updated successfully", "profile_image": user.profile_image.url})
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class PropertyCreateView(generics.CreateAPIView):
+    queryset = Property.objects.all()
+    serializer_class = PropertySerializer
+    parser_classes = (MultiPartParser, FormParser)  # Ensures file uploads are parsed
+
+    def post(self, request, *args, **kwargs):
+        
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            property_instance = serializer.save()
+            return Response({"message": "Property created successfully!", "property": PropertySerializer(property_instance).data}, status=201)
+        return Response(serializer.errors, status=400)
+
+class PropertyListView(generics.ListAPIView):
+    queryset = Property.objects.all()
+    serializer_class = PropertySerializer
