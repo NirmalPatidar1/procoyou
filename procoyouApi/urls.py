@@ -7,6 +7,8 @@ urlpatterns = [
     path('login/', UserLoginView.as_view(), name='login'),
     path('userinfo/', UserInfoView.as_view(), name='user-info'),
     path('upload-profile-image/', ProfileImageUploadView.as_view(), name='upload-profile-image'),
+    path('update-profile/', UpdateProfileView.as_view(), name='update-profile'),
     path('add-property/', PropertyCreateView.as_view(), name='add-property'),
     path('list-properties/', PropertyListView.as_view(), name='list-properties'),
+    path('buyer-request/', BuyerRequestView.as_view(), name='buyer-request'),
 ]

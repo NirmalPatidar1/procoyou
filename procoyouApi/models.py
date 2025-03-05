@@ -20,8 +20,6 @@ class CustomUserManager(BaseUserManager):
 
         return self.create_user(email, mobile_number, password, name, **extra_fields)
 
-
-
 class CustomUser(AbstractUser):
     username = None  # Remove the username field
     mobile_number = models.CharField(max_length=15, unique=True)
@@ -58,7 +56,12 @@ class Property(models.Model):
     furniture_status = models.CharField(max_length=50, choices=[('Furnished', 'Furnished'), ('Unfurnished', 'Unfurnished')])
     bhk_type = models.CharField(max_length=50)
     contact_number = models.CharField(max_length=15)
-
+    Looking_For_Type = [
+        ('Sell', 'Sell'),
+        ('Rent', 'Rent'),
+        ('PG', 'PG'),
+    ]
+    looking_for = models.CharField(max_length=50, default="Sell", choices=Looking_For_Type)
     # Top Amenities
     cctv = models.BooleanField(default=False)
     lift = models.BooleanField(default=False)
@@ -83,3 +86,34 @@ class PropertyMedia(models.Model):
 
     def __str__(self):
         return f"{self.property.title} - {self.media_type}"
+    
+class BuyerRequest(models.Model):
+    PROPERTY_TYPE_CHOICES = [
+        ('Villa', 'Villa'),
+        ('Apartment', 'Apartment'),
+        ('House', 'House'),
+    ]
+    
+    FURNITURE_STATUS_CHOICES = [
+        ('Furnished', 'Furnished'),
+        ('Semi-furnished', 'Semi-furnished'),
+        ('Unfurnished', 'Unfurnished'),
+    ]
+    
+    LOOKING_FOR_CHOICES = [
+        ('Buy', 'Buy'),
+        ('Rent', 'Rent'),
+        ('PG', 'PG'),
+    ]
+    
+    address = models.TextField()
+    price = models.CharField(max_length=50)
+    property_type = models.CharField(max_length=50, choices=PROPERTY_TYPE_CHOICES)
+    size = models.CharField(max_length=50)
+    furniture_status = models.CharField(max_length=50, choices=FURNITURE_STATUS_CHOICES)
+    bhk_type = models.CharField(max_length=50)
+    looking_for = models.CharField(max_length=50, choices=LOOKING_FOR_CHOICES, default="Buy")
+    description = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.property_type} - {self.address}"

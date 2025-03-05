@@ -27,10 +27,34 @@ class UserLoginSerializer(serializers.Serializer):
     mobile_number = serializers.CharField()
 
 class UserInfoSerializer(serializers.ModelSerializer):
+    profile_image = serializers.SerializerMethodField()
     class Meta:
         model = User
         fields = ['id', 'name', 'email', 'mobile_number', 'role', 'profile_image']
-        
+    def get_profile_image(self, obj):
+        if obj.profile_image:
+            return f"{settings.BASE_URL}{settings.MEDIA_URL}{obj.profile_image.name}"
+        return None
+
+class UpdateProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ['name', 'email', 'mobile_number']
+    
+    def validate_email(self, value):
+        """Ensure email is unique if changed."""
+        user = self.instance
+        if User.objects.exclude(pk=user.pk).filter(email=value).exists():
+            raise serializers.ValidationError("This email is already in use.")
+        return value
+
+    def validate_mobile_number(self, value):
+        """Ensure mobile number is unique if changed."""
+        user = self.instance
+        if User.objects.exclude(pk=user.pk).filter(mobile_number=value).exists():
+            raise serializers.ValidationError("This mobile number is already in use.")
+        return value
+    
 class ProfileImageUploadSerializer(serializers.ModelSerializer):
     
     class Meta:
@@ -45,7 +69,6 @@ class PropertyMediaSerializer(serializers.ModelSerializer):
     class Meta:
         model = PropertyMedia
         fields = ['id', 'media_type', 'file']
-
 
 class PropertySerializer(serializers.ModelSerializer):
     media_files = serializers.ListField(
@@ -67,3 +90,9 @@ class PropertySerializer(serializers.ModelSerializer):
             PropertyMedia.objects.create(property=property_instance, media_type=media_type, file=file)
 
         return property_instance
+    
+class BuyerRequestSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BuyerRequest
+        fields = '__all__'
+        

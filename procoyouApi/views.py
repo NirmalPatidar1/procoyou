@@ -29,7 +29,6 @@ class UserSignupView(APIView):
             return Response({"message": "OTP sent to mobile", "otp": otp})
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
 # OTP Verification
 class OTPVerificationView(APIView):
     def post(self, request):
@@ -91,6 +90,19 @@ class ProfileImageUploadView(APIView):
             return Response({"message": "Profile image updated successfully", "profile_image": user.profile_image.url})
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+class UpdateProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def put(self, request):
+        user = request.user  # Get the logged-in user
+        serializer = UpdateProfileSerializer(user, data=request.data, partial=True)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Profile updated successfully", "data": serializer.data}, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 class PropertyCreateView(generics.CreateAPIView):
     queryset = Property.objects.all()
     serializer_class = PropertySerializer
@@ -107,3 +119,11 @@ class PropertyCreateView(generics.CreateAPIView):
 class PropertyListView(generics.ListAPIView):
     queryset = Property.objects.all()
     serializer_class = PropertySerializer
+    
+class BuyerRequestView(APIView):
+    def post(self, request):
+        serializer = BuyerRequestSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Property request created successfully", "data": serializer.data}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
