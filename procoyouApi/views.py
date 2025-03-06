@@ -9,6 +9,7 @@ from .serializers import *
 from rest_framework.permissions import IsAuthenticated
 from .models import *
 from rest_framework import generics
+from rest_framework.pagination import PageNumberPagination
 
 User = get_user_model()
 
@@ -121,9 +122,76 @@ class PropertyListView(generics.ListAPIView):
     serializer_class = PropertySerializer
     
 class BuyerRequestView(APIView):
+    permission_classes = [permissions.IsAuthenticated]  # Ensure only logged-in users can create requests
+
     def post(self, request):
-        serializer = BuyerRequestSerializer(data=request.data)
+        serializer = BuyerRequestSerializer(data=request.data, context={"request": request})  # Pass request context
         if serializer.is_valid():
-            serializer.save()
-            return Response({"message": "Property request created successfully", "data": serializer.data}, status=status.HTTP_201_CREATED)
+            serializer.save()  # No need to manually assign user here
+            return Response(
+                {"message": "Property request created successfully", "data": serializer.data},
+                status=status.HTTP_201_CREATED
+            )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class NotificationPagination(PageNumberPagination):
+    page_size = 10  # Default notifications per page
+    page_size_query_param = 'page_size'  # Optional: Allow dynamic page size
+    max_page_size = 100  # Limit the max page size
+    
+class NotificationView(APIView):
+    permission_classes = [permissions.IsAuthenticated]  # Only logged-in users can access
+    pagination_class = NotificationPagination
+    
+    def get(self, request):
+        notifications = Notification.objects.filter(user=request.user).order_by('-datetime')  
+        paginator = self.pagination_class()
+        result_page = paginator.paginate_queryset(notifications, request)
+        serializer = NotificationSerializer(result_page, many=True)
+        return paginator.get_paginated_response(serializer.data)
+
+    def post(self, request):
+        serializer = NotificationSerializer(data=request.data)
+        if serializer.is_valid():
+            Notification.objects.create(
+                user=request.user, 
+                title=serializer.validated_data['title'], 
+                description=serializer.validated_data['description']
+            )
+            return Response({"message": "Notification created successfully"}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class WishlistView(generics.ListCreateAPIView):
+    serializer_class = WishlistSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role == 0:  # Buyer should see only properties
+            content_type = ContentType.objects.get(model='property')
+        else:  # Seller should see only buyer requests
+            content_type = ContentType.objects.get(model='buyerrequest')
+
+        return Wishlist.objects.filter(user=user, content_type=content_type)
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save(user=request.user)
+            return Response(
+                {"message": "Added to wishlist successfully", "data": serializer.data},
+                status=status.HTTP_201_CREATED
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+class WishlistDeleteView(generics.DestroyAPIView):
+    serializer_class = WishlistSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Wishlist.objects.filter(user=self.request.user)

@@ -1,5 +1,9 @@
 from django.contrib.auth.models import BaseUserManager,AbstractUser
 from django.db import models
+from rest_framework import permissions
+from django.utils.timezone import now
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, mobile_number, password=None, name=None, **extra_fields):
@@ -73,7 +77,6 @@ class Property(models.Model):
     def __str__(self):
         return self.title
 
-
 class PropertyMedia(models.Model):
     PROPERTY_MEDIA_TYPE = [
         ('image', 'Image'),
@@ -106,6 +109,7 @@ class BuyerRequest(models.Model):
         ('PG', 'PG'),
     ]
     
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE) 
     address = models.TextField()
     price = models.CharField(max_length=50)
     property_type = models.CharField(max_length=50, choices=PROPERTY_TYPE_CHOICES)
@@ -117,3 +121,23 @@ class BuyerRequest(models.Model):
 
     def __str__(self):
         return f"{self.property_type} - {self.address}"
+
+class Notification(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)  # Links to the user receiving the notification
+    title = models.CharField(max_length=255)
+    description = models.TextField()
+    datetime = models.DateTimeField(default=now)  # Auto set when notification is created
+
+    def __str__(self):
+        return f"{self.title} - {self.user.username}"
+
+class Wishlist(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)  # Property or BuyerRequest
+    object_id = models.PositiveIntegerField()
+    item = GenericForeignKey('content_type', 'object_id')  # Links to actual Property or BuyerRequest
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user} - {self.item}"
+    

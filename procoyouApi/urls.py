@@ -11,4 +11,7 @@ urlpatterns = [
     path('add-property/', PropertyCreateView.as_view(), name='add-property'),
     path('list-properties/', PropertyListView.as_view(), name='list-properties'),
     path('buyer-request/', BuyerRequestView.as_view(), name='buyer-request'),
+    path('notifications/', NotificationView.as_view(), name='notifications'),
+    path('wishlist/', WishlistView.as_view(), name='wishlist-list'),
+    path('wishlist/<int:pk>/', WishlistDeleteView.as_view(), name='wishlist-delete'),
 ]
