@@ -14,4 +14,6 @@ urlpatterns = [
     path('notifications/', NotificationView.as_view(), name='notifications'),
     path('wishlist/', WishlistView.as_view(), name='wishlist-list'),
     path('wishlist/<int:pk>/', WishlistDeleteView.as_view(), name='wishlist-delete'),
+    path('home/', HomeView.as_view(), name='home'),
+    path('property/<int:id>/', PropertyDetailView.as_view(), name='property-detail'),
 ]

@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from .models import *
 from django.contrib.contenttypes.models import ContentType
 from django.utils.timezone import localtime
+from datetime import timedelta
 
 User = get_user_model()
 
@@ -140,13 +141,7 @@ class WishlistSerializer(serializers.ModelSerializer):
         if obj.content_type.model == 'property':
             try:
                 property_obj = Property.objects.get(id=obj.object_id)
-                print(property_obj);
-                return {
-                    "id": property_obj.id,
-                    "title": property_obj.title,
-                    "location": property_obj.address,
-                    "price": property_obj.price
-                }
+                return PropertySerializer(property_obj).data 
             except Property.DoesNotExist:
                 return None
         elif obj.content_type.model == 'buyerrequest':
@@ -189,3 +184,4 @@ class WishlistSerializer(serializers.ModelSerializer):
 
         validated_data['content_type'] = ContentType.objects.get_for_model(model)
         return super().create(validated_data)
+    

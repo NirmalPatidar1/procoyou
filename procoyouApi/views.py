@@ -118,8 +118,14 @@ class PropertyCreateView(generics.CreateAPIView):
         return Response(serializer.errors, status=400)
 
 class PropertyListView(generics.ListAPIView):
-    queryset = Property.objects.all()
-    serializer_class = PropertySerializer
+    permission_classes = [permissions.IsAuthenticated]
+    def get(self, request):
+        property = Property.objects.all()[:10]  
+
+        return Response({
+            "property": PropertySerializer(property, many=True).data,
+        }, status=status.HTTP_200_OK)
+   
     
 class BuyerRequestView(APIView):
     permission_classes = [permissions.IsAuthenticated]  # Ensure only logged-in users can create requests
@@ -195,3 +201,42 @@ class WishlistDeleteView(generics.DestroyAPIView):
 
     def get_queryset(self):
         return Wishlist.objects.filter(user=self.request.user)
+    
+class HomeView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        if user.role == 0:  # Buyer
+            recommended_property = Property.objects.all()[:10]  # Example condition
+            category_property = Property.objects.all()[:10]
+
+            return Response({
+                "recommended_property": PropertySerializer(recommended_property, many=True).data,
+                "category_property": PropertySerializer(category_property, many=True).data,
+            }, status=status.HTTP_200_OK)
+
+        elif user.role == 1:  # Seller
+            buyers_request = BuyerRequest.objects.all()[:10]  # Example: Show latest 10 buyer requests
+            recommended_property = Property.objects.all()[:10]  # Example: Seller’s properties
+
+            return Response({
+                "buyers_request": BuyerRequestSerializer(buyers_request, many=True).data,
+                "recommended_property": PropertySerializer(recommended_property, many=True).data,
+            }, status=status.HTTP_200_OK)
+
+        return Response({"error": "Invalid role"}, status=status.HTTP_400_BAD_REQUEST)
+    
+class PropertyDetailView(generics.RetrieveAPIView):
+    queryset = Property.objects.all()
+    serializer_class = PropertySerializer
+    permission_classes = [permissions.IsAuthenticated]  # Anyone can access this API
+    lookup_field = "id"
+
+    def get(self, request, id, *args, **kwargs):
+        try:
+            property_obj = Property.objects.get(id=id)
+            serializer = PropertySerializer(property_obj)
+            return Response({"message": "Success", "data": serializer.data}, status=status.HTTP_200_OK)
+        except Property.DoesNotExist:
+            return Response({"error": "Property not found"}, status=status.HTTP_404_NOT_FOUND)
