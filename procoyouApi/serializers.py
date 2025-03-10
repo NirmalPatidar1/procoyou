@@ -185,3 +185,43 @@ class WishlistSerializer(serializers.ModelSerializer):
         validated_data['content_type'] = ContentType.objects.get_for_model(model)
         return super().create(validated_data)
     
+class ProposalMediaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProposalMedia
+        fields = ['id', 'media_type', 'file']
+
+class ProposalSerializer(serializers.ModelSerializer):
+    seller_id = serializers.IntegerField(source='seller.id', read_only=True)  # Read-only seller ID
+    media = ProposalMediaSerializer(many=True, read_only=True)
+    uploaded_files = serializers.ListField(
+        child=serializers.FileField(), write_only=True, required=False
+    )  # Accept multiple file uploads
+
+    class Meta:
+        model = Proposal
+        fields = [
+            'id', 'buyer_request', 'seller_id', 'title', 'address', 'price', 'property_type',
+            'size', 'furniture_status', 'bhk_type', 'top_amenities', 'description', 'created_at',
+            'media', 'uploaded_files'
+        ]
+
+    def validate(self, data):
+        seller = self.context['request'].user
+        buyer_request = data['buyer_request']
+
+        # Ensure a seller submits only one proposal per BuyerRequest
+        if Proposal.objects.filter(seller=seller, buyer_request=buyer_request).exists():
+            raise serializers.ValidationError({"error": "You have already submitted a proposal for this BuyerRequest"})
+
+        return data
+
+    def create(self, validated_data):
+        uploaded_files = validated_data.pop('uploaded_files', [])
+        proposal = Proposal.objects.create(**validated_data)
+
+        # Save uploaded media files
+        for file in uploaded_files:
+            media_type = 'video' if file.name.lower().endswith(('mp4', 'avi', 'mov')) else 'image'
+            ProposalMedia.objects.create(proposal=proposal, file=file, media_type=media_type)
+
+        return proposal

@@ -140,4 +140,45 @@ class Wishlist(models.Model):
 
     def __str__(self):
         return f"{self.user} - {self.item}"
+  
+class Proposal(models.Model):
+    PROPERTY_TYPE_CHOICES = [
+        ('Villa', 'Villa'),
+        ('Apartment', 'Apartment'),
+        ('House', 'House'),
+    ]
     
+    FURNITURE_STATUS_CHOICES = [
+        ('Furnished', 'Furnished'),
+        ('Semi-furnished', 'Semi-furnished'),
+        ('Unfurnished', 'Unfurnished'),
+    ]
+
+    buyer_request = models.ForeignKey("BuyerRequest", on_delete=models.CASCADE, related_name="proposals")
+    seller = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name="seller_proposals")
+    
+    title = models.CharField(max_length=255)
+    address = models.TextField()
+    price = models.CharField(max_length=50)
+    property_type = models.CharField(max_length=50, choices=PROPERTY_TYPE_CHOICES)
+    size = models.CharField(max_length=50)
+    furniture_status = models.CharField(max_length=50, choices=FURNITURE_STATUS_CHOICES)
+    bhk_type = models.CharField(max_length=50)
+    top_amenities = models.TextField(help_text="Comma-separated list of amenities")
+    description = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Proposal by {self.seller} for {self.buyer_request}"
+
+class ProposalMedia(models.Model):
+    PROPERTY_MEDIA_TYPE = [
+        ('image', 'Image'),
+        ('video', 'Video'),
+    ]
+    proposal = models.ForeignKey(Proposal, on_delete=models.CASCADE, related_name="media")
+    media_type = models.CharField(max_length=10, choices=PROPERTY_MEDIA_TYPE)
+    file = models.FileField(upload_to="proposal_media/")  # Supports both image and video
+
+    def __str__(self):
+        return f"Media for {self.proposal.title} - {self.media_type}"

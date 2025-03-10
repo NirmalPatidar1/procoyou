@@ -16,4 +16,6 @@ urlpatterns = [
     path('wishlist/<int:pk>/', WishlistDeleteView.as_view(), name='wishlist-delete'),
     path('home/', HomeView.as_view(), name='home'),
     path('property/<int:id>/', PropertyDetailView.as_view(), name='property-detail'),
+    path('proposals/', ProposalListCreateView.as_view(), name='proposal-list-create'),
+    path('proposals/<int:pk>/', ProposalDetailView.as_view(), name='proposal-detail'),
 ]

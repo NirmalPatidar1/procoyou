@@ -28,3 +28,10 @@ class PropertyMediaAdmin(admin.ModelAdmin):
 class NotificationAdmin(admin.ModelAdmin):
     list_display = [field.name for field in Notification._meta.fields]
     
+@admin.register(ProposalMedia)
+class ProposalMediaAdmin(admin.ModelAdmin):
+    list_display = [field.name for field in ProposalMedia._meta.fields]
+    
+@admin.register(Proposal)
+class ProposalAdmin(admin.ModelAdmin):
+    list_display = [field.name for field in Proposal._meta.fields]

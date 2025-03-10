@@ -240,3 +240,23 @@ class PropertyDetailView(generics.RetrieveAPIView):
             return Response({"message": "Success", "data": serializer.data}, status=status.HTTP_200_OK)
         except Property.DoesNotExist:
             return Response({"error": "Property not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+class ProposalListCreateView(generics.ListCreateAPIView):
+    serializer_class = ProposalSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role == 0:  # Buyer
+            return Proposal.objects.filter(buyer_request__user=user)
+        elif user.role == 1:  # Seller
+            return Proposal.objects.filter(seller=user)
+        return Proposal.objects.none()
+
+    def perform_create(self, serializer):
+        serializer.save(seller=self.request.user)
+
+class ProposalDetailView(generics.RetrieveAPIView):
+    serializer_class = ProposalSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    queryset = Proposal.objects.all()
