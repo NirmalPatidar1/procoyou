@@ -57,7 +57,17 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
         if User.objects.exclude(pk=user.pk).filter(mobile_number=value).exists():
             raise serializers.ValidationError("This mobile number is already in use.")
         return value
+ 
+class LocationUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomUser
+        fields = ['latitude', 'longitude', 'address']
     
+class RoleUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomUser
+        fields = ['role']
+        
 class ProfileImageUploadSerializer(serializers.ModelSerializer):
     
     class Meta:

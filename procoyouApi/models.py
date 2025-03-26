@@ -36,14 +36,18 @@ class CustomUser(AbstractUser):
         (1, 'Seller'),
     )
     role = models.IntegerField(choices=ROLE_CHOICES, default=0, null=True, blank=True)
-
+    # New Fields
+    address = models.TextField(blank=True, null=True)  # Address field
+    latitude = models.CharField(max_length=20, blank=True, null=True)  # Latitude
+    longitude = models.CharField(max_length=20, blank=True, null=True)  # Longitude
+    
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['mobile_number', 'name']
 
     objects = CustomUserManager()  # Use CustomUserManager instead of default manager
 
     def __str__(self):
-        return self.email
+        return self.mobile_number
 
 class Property(models.Model):
     PROPERTY_TYPE_CHOICES = [
@@ -54,6 +58,8 @@ class Property(models.Model):
     
     title = models.CharField(max_length=255)
     address = models.TextField()
+    latitude = models.CharField(max_length=20, blank=True, null=True)  # Latitude
+    longitude = models.CharField(max_length=20, blank=True, null=True)  # Longitude
     price = models.CharField(max_length=50)
     property_type = models.CharField(max_length=50, choices=PROPERTY_TYPE_CHOICES)
     size = models.CharField(max_length=50)
@@ -75,7 +81,7 @@ class Property(models.Model):
     description = models.TextField(blank=True, null=True)
 
     def __str__(self):
-        return self.title
+        return str(self.id)
 
 class PropertyMedia(models.Model):
     PROPERTY_MEDIA_TYPE = [
@@ -111,6 +117,8 @@ class BuyerRequest(models.Model):
     
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE) 
     address = models.TextField()
+    latitude = models.CharField(max_length=20, blank=True, null=True)  # Latitude
+    longitude = models.CharField(max_length=20, blank=True, null=True)  # Longitude
     price = models.CharField(max_length=50)
     property_type = models.CharField(max_length=50, choices=PROPERTY_TYPE_CHOICES)
     size = models.CharField(max_length=50)
@@ -120,7 +128,7 @@ class BuyerRequest(models.Model):
     description = models.TextField(blank=True, null=True)
 
     def __str__(self):
-        return f"{self.property_type} - {self.address}"
+        return str(self.id)
 
 class Notification(models.Model):
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)  # Links to the user receiving the notification
@@ -159,6 +167,8 @@ class Proposal(models.Model):
     
     title = models.CharField(max_length=255)
     address = models.TextField()
+    latitude = models.CharField(max_length=20, blank=True, null=True)  # Latitude
+    longitude = models.CharField(max_length=20, blank=True, null=True)  # Longitude
     price = models.CharField(max_length=50)
     property_type = models.CharField(max_length=50, choices=PROPERTY_TYPE_CHOICES)
     size = models.CharField(max_length=50)
@@ -169,7 +179,7 @@ class Proposal(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Proposal by {self.seller} for {self.buyer_request}"
+        return f"Proposal by {self.seller} for request ID {self.buyer_request}"
 
 class ProposalMedia(models.Model):
     PROPERTY_MEDIA_TYPE = [
@@ -182,3 +192,5 @@ class ProposalMedia(models.Model):
 
     def __str__(self):
         return f"Media for {self.proposal.title} - {self.media_type}"
+    
+    

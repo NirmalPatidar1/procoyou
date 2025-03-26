@@ -3,13 +3,16 @@ from django.contrib.auth import get_user_model
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
-from rest_framework_simplejwt.tokens import RefreshToken
+from django.contrib.auth import authenticate
+from rest_framework.authtoken.models import Token
 from rest_framework.parsers import MultiPartParser, FormParser
 from .serializers import *
 from rest_framework.permissions import IsAuthenticated
 from .models import *
 from rest_framework import generics
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.permissions import AllowAny
+from geopy.distance import geodesic
 
 User = get_user_model()
 
@@ -19,6 +22,7 @@ def generate_otp():
 
 # User Signup
 class UserSignupView(APIView):
+    permission_classes = [AllowAny]
     def post(self, request):
         serializer = UserSignupSerializer(data=request.data)
         if serializer.is_valid():
@@ -32,6 +36,7 @@ class UserSignupView(APIView):
 
 # OTP Verification
 class OTPVerificationView(APIView):
+    permission_classes = [AllowAny]
     def post(self, request):
         serializer = OTPVerificationSerializer(data=request.data)
         if serializer.is_valid():
@@ -43,11 +48,13 @@ class OTPVerificationView(APIView):
                 user.save()
                 
                 # Generate JWT Token
-                refresh = RefreshToken.for_user(user)
+                # refresh = RefreshToken.for_user(user)
+                Token.objects.filter(user=user).delete()
+                token, created = Token.objects.get_or_create(user=user)
+                
                 return Response({
                     "message": "OTP verified successfully",
-                    "access_token": str(refresh.access_token),
-                    "refresh_token": str(refresh)
+                    "access_token": token.key
                 })
             except User.DoesNotExist:
                 return Response({"error": "Invalid OTP"}, status=status.HTTP_400_BAD_REQUEST)
@@ -55,6 +62,7 @@ class OTPVerificationView(APIView):
 
 # User Login
 class UserLoginView(APIView):
+    permission_classes = [AllowAny]
     def post(self, request):
         serializer = UserLoginSerializer(data=request.data)
         if serializer.is_valid():
@@ -78,6 +86,29 @@ class UserInfoView(APIView):
         serializer = UserInfoSerializer(user)
         return Response(serializer.data)
     
+class UpdateLocationView(APIView):
+    permission_classes = [IsAuthenticated]  # Ensure the user is logged in
+
+    def post(self, request):
+        user = request.user  # Get the currently logged-in user
+        serializer = LocationUpdateSerializer(user, data=request.data, partial=True)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Location updated successfully", "data": serializer.data})
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+class UpdateRoleView(APIView):
+    permission_classes = [IsAuthenticated]  # Ensure the user is logged in
+
+    def post(self, request):
+        user = request.user  # Get the currently logged-in user
+        serializer = RoleUpdateSerializer(user, data=request.data, partial=True)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "User role updated successfully", "data": serializer.data})
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 # User profile image upload
 class ProfileImageUploadView(APIView):
     permission_classes = [IsAuthenticated]  
@@ -94,7 +125,7 @@ class ProfileImageUploadView(APIView):
 class UpdateProfileView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def put(self, request):
+    def post(self, request):
         user = request.user  # Get the logged-in user
         serializer = UpdateProfileSerializer(user, data=request.data, partial=True)
 
@@ -105,6 +136,7 @@ class UpdateProfileView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class PropertyCreateView(generics.CreateAPIView):
+    permission_classes = [IsAuthenticated]
     queryset = Property.objects.all()
     serializer_class = PropertySerializer
     parser_classes = (MultiPartParser, FormParser)  # Ensures file uploads are parsed
@@ -207,22 +239,54 @@ class HomeView(APIView):
 
     def get(self, request):
         user = request.user
+        # Ensure user has a location
+        if not user.latitude or not user.longitude:
+            return Response({"error": "User location is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        user_location = (user.latitude, user.longitude)  # User's location as a tuple
+
+        nearby_properties = []
+        for property in Property.objects.all():  # Iterate over all properties
+            if property.latitude and property.longitude:
+                property_location = (property.latitude, property.longitude)
+                distance = geodesic(user_location, property_location).km  # Calculate distance in km
+
+                if distance <= 15:  # Only include properties within 5 km
+                    nearby_properties.append((distance, property))
+         # Sort properties by nearest distance
+        nearby_properties.sort(key=lambda x: x[0])  # Sort by distance (first element in tuple)
+
+        # Extract sorted property objects
+        sorted_properties = [prop for _, prop in nearby_properties]
         if user.role == 0:  # Buyer
             recommended_property = Property.objects.all()[:10]  # Example condition
             category_property = Property.objects.all()[:10]
 
             return Response({
-                "recommended_property": PropertySerializer(recommended_property, many=True).data,
-                "category_property": PropertySerializer(category_property, many=True).data,
+                "recommended_property": PropertySerializer(sorted_properties, many=True).data,
+                "category_property": PropertySerializer(sorted_properties, many=True).data,
             }, status=status.HTTP_200_OK)
 
         elif user.role == 1:  # Seller
-            buyers_request = BuyerRequest.objects.all()[:10]  # Example: Show latest 10 buyer requests
-            recommended_property = Property.objects.all()[:10]  # Example: Seller’s properties
+            #buyers_request = BuyerRequest.objects.all()[:10]  # Example: Show latest 10 buyer requests
+            #recommended_property = Property.objects.all()[:10]  # Example: Seller’s properties
+            nearby_buyers_request = []
+            for buyers_request in BuyerRequest.objects.all():  # Iterate over all properties
+                if buyers_request.latitude and buyers_request.longitude:
+                    buyers_request_location = (buyers_request.latitude, buyers_request.longitude)
+                    distance = geodesic(user_location, buyers_request_location).km  # Calculate distance in km
+
+                    if distance <= 15:  # Only include properties within 5 km
+                        nearby_buyers_request.append((distance, property))
+            # Sort properties by nearest distance
+            nearby_buyers_request.sort(key=lambda x: x[0])  # Sort by distance (first element in tuple)
+
+            # Extract sorted property objects
+            buyers_request = [prop for _, prop in nearby_buyers_request]
 
             return Response({
                 "buyers_request": BuyerRequestSerializer(buyers_request, many=True).data,
-                "recommended_property": PropertySerializer(recommended_property, many=True).data,
+                "recommended_property": PropertySerializer(sorted_properties, many=True).data,
             }, status=status.HTTP_200_OK)
 
         return Response({"error": "Invalid role"}, status=status.HTTP_400_BAD_REQUEST)

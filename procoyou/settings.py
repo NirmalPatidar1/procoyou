@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    "rest_framework.authtoken",
     'procoyouApi',
 ]
 
@@ -129,8 +130,11 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "procoyouApi.authentication.BearerTokenAuthentication",
+    ),
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
     ],
 }
 
@@ -139,13 +143,6 @@ AUTH_USER_MODEL = 'procoyouApi.CustomUser'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(days=7),  # Access token valid for 7 days
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=30),  # Refresh token valid for 30 days
-    "ROTATE_REFRESH_TOKENS": True,
-    "BLACKLIST_AFTER_ROTATION": True,
-    "ALGORITHM": "HS256",
-    "SIGNING_KEY": "your-secret-key",
-}
+
 
 BASE_URL = 'http://62.72.35.191'
