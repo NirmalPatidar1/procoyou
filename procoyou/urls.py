@@ -24,7 +24,7 @@ def home(request):
     return HttpResponse("<h1>Welcome to Procoyou App Home.</h1>")
 
 urlpatterns = [
-     path('', home),
+    path('', home),
     path('admin/', admin.site.urls),
     
     path('api/v1/', include('procoyouApi.urls')),
