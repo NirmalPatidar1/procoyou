@@ -1,7 +1,12 @@
 from django.urls import path
 from .views import *
+from django.http import HttpResponse
+
+def home(request):
+    return HttpResponse("<h1>Welcome to Procoyou API</h1>")
 
 urlpatterns = [
+    path('', home),  #  This handles the root URL
     path('signup/', UserSignupView.as_view(), name='signup'),
     path('verify-otp/', OTPVerificationView.as_view(), name='verify-otp'),
     path('login/', UserLoginView.as_view(), name='login'),
