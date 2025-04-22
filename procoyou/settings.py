@@ -28,7 +28,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = [
     '127.0.0.1',
-    '62.72.35.191'
+    '62.72.35.191',
+    '13.203.205.145'
 ]
 
 
@@ -145,4 +146,4 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 
 
-BASE_URL = 'http://62.72.35.191'
+BASE_URL = 'http://13.203.205.145'

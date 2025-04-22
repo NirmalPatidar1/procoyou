@@ -152,10 +152,29 @@ class PropertyCreateView(generics.CreateAPIView):
 class PropertyListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
     def get(self, request):
-        property = Property.objects.all()[:10]  
+        user = request.user
+        # Ensure user has a location
+        if not user.latitude or not user.longitude:
+            return Response({"error": "User location is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        user_location = (user.latitude, user.longitude)  # User's location as a tuple
+
+        nearby_properties = []
+        for property in Property.objects.all():  # Iterate over all properties
+            if property.latitude and property.longitude:
+                property_location = (property.latitude, property.longitude)
+                distance = geodesic(user_location, property_location).km  # Calculate distance in km
+
+                if distance <= 15:  # Only include properties within 5 km
+                    nearby_properties.append((distance, property))
+         # Sort properties by nearest distance
+        nearby_properties.sort(key=lambda x: x[0])  # Sort by distance (first element in tuple)
+
+        # Extract sorted property objects
+        sorted_properties = [prop for _, prop in nearby_properties]  
 
         return Response({
-            "property": PropertySerializer(property, many=True).data,
+            "property": PropertySerializer(sorted_properties, many=True).data,
         }, status=status.HTTP_200_OK)
    
     
